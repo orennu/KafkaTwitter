@@ -26,26 +26,4 @@ public class JSONFileReader {
         return jsonObject;
     }
 
-//    public static void main(String[] args) {
-//
-//        JSONParser parser = new JSONParser();
-//
-//        try {
-//            Object fileObject = parser.parse(new FileReader("/home/oren/projects/KafkaTwitter/.twitter_secrets.json"));
-//            JSONObject jsonObject = (JSONObject) fileObject;
-//
-//            String consumerKey = (String) jsonObject.get("consumerKey");
-//            String consumerSecret = (String) jsonObject.get("consumerSecret");
-//            String token = (String) jsonObject.get("token");
-//            String secret = (String) jsonObject.get("secret");
-//
-//            System.out.println(consumerKey);
-//            System.out.println(consumerSecret);
-//            System.out.println(token);
-//            System.out.println(secret);
-//
-//        } catch (Exception err) {
-//            err.printStackTrace();
-//        }
-//    }
 }
