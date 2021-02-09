@@ -45,7 +45,7 @@ public class TwitterProducer {
     public void run() {
 
         logger.info("Setup");
-        BlockingQueue<String> msgQueue = new LinkedBlockingQueue<String>(1000);
+        BlockingQueue<String> msgQueue = new LinkedBlockingQueue<>(1000);
 
         // create twitter client
         Client twitterClient = createTwitterClient(msgQueue);

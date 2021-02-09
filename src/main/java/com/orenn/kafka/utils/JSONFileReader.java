@@ -3,7 +3,6 @@ package com.orenn.kafka.utils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 
 public class JSONFileReader {
