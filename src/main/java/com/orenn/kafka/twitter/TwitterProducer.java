@@ -135,6 +135,9 @@ public class TwitterProducer {
         properties.setProperty(ProducerConfig.RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE));
         properties.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "5");
 
+        // compression type property
+        properties.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
+
         // create the producer
         KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
 
