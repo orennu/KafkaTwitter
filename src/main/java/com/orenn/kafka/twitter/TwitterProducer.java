@@ -11,18 +11,21 @@ import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
 import com.twitter.hbc.core.processor.StringDelimitedProcessor;
 import com.twitter.hbc.httpclient.auth.Authentication;
 import com.twitter.hbc.httpclient.auth.OAuth1;
+import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class TwitterProducer {
 
-    Logger logger = LoggerFactory.getLogger(TwitterProducer.class.getName());
+    private final Logger logger = LoggerFactory.getLogger(TwitterProducer.class.getName());
 
     private final JSONObject secretsMap = new JSONFileReader().getJsonObject();
 
@@ -30,6 +33,7 @@ public class TwitterProducer {
     private final String consumerSecret = (String) secretsMap.get("consumerSecret");
     private final String token = (String) secretsMap.get("token");
     private final String secret = (String) secretsMap.get("secret");
+    private final List<String> terms = Lists.newArrayList("kafka");
 
     public TwitterProducer() {
 
@@ -52,6 +56,17 @@ public class TwitterProducer {
         twitterClient.connect();
 
         // create kafka producer
+        KafkaProducer<String, String> kafkaProducer = createKafkaProducer();
+
+        // add shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("stopping application");
+            logger.info("shutting down twitter client");
+            twitterClient.stop();
+            logger.info("closing kafka producer");
+            kafkaProducer.close();
+            logger.info("done");
+        }));
 
         // loop to send tweets to kafka
         while (!twitterClient.isDone()) {
@@ -65,17 +80,25 @@ public class TwitterProducer {
 
             if (msg != null) {
                 logger.info(msg);
+                kafkaProducer.send(new ProducerRecord<>("twitter_tweets", null, msg), new Callback() {
+                    @Override
+                    public void onCompletion(RecordMetadata recordMetadata, Exception e) {
+                        if (e != null) {
+                            logger.error("Error occurred: ", e);
+                        }
+                    }
+                });
             }
         }
 
         logger.info("End of Application");
     }
 
-    private Client createTwitterClient(BlockingQueue<String> msgQueue) {
+    public Client createTwitterClient(BlockingQueue<String> msgQueue) {
 
         Hosts hosts = new HttpHosts(Constants.STREAM_HOST);
         StatusesFilterEndpoint endpoint = new StatusesFilterEndpoint();
-        List<String> terms = Lists.newArrayList("kafka");
+
         endpoint.trackTerms(terms);
 
         Authentication oAuth1 = new OAuth1(consumerKey, consumerSecret, token, secret);
@@ -92,4 +115,30 @@ public class TwitterProducer {
         return twitterClient;
 
     }
+
+    public KafkaProducer<String, String> createKafkaProducer() {
+        String bootstrapServers = "127.0.0.1:9092";
+
+        // create producer properties
+        Properties properties = new Properties();
+
+        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        // properties for safe producer
+        properties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true"); // basically this property is
+                                                                                  // sufficient but fpr clarity you
+                                                                                  // can/should explicitly set also
+                                                                                  // below properties
+        properties.setProperty(ProducerConfig.ACKS_CONFIG, "all");
+        properties.setProperty(ProducerConfig.RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE));
+        properties.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "5");
+
+        // create the producer
+        KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
+
+        return kafkaProducer;
+    }
+
 }
