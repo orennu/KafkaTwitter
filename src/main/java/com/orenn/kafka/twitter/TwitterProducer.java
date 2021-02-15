@@ -128,15 +128,18 @@ public class TwitterProducer {
 
         // properties for safe producer
         properties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true"); // basically this property is
-                                                                                  // sufficient but fpr clarity you
+                                                                                  // sufficient but for clarity you
                                                                                   // can/should explicitly set also
                                                                                   // below properties
         properties.setProperty(ProducerConfig.ACKS_CONFIG, "all");
         properties.setProperty(ProducerConfig.RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE));
         properties.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "5");
 
-        // compression type property
-        properties.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
+        // properties for high throughput producer (trading off CPU usage (for compression) and latency for improved throughput)
+        properties.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy"); // compression
+        properties.setProperty(ProducerConfig.LINGER_MS_CONFIG, "20"); // how many ms producer should wait for sending
+                                                                       // messages. outcome is batching messages together
+        properties.setProperty(ProducerConfig.BATCH_SIZE_CONFIG, Integer.toString(32 * 1024)); // max batch size in KB. 32KB here
 
         // create the producer
         KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(properties);
