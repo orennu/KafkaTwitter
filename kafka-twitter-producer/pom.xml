@@ -33,6 +33,8 @@
             <artifactId>hbc-core</artifactId> <!-- or hbc-twitter4j -->
             <version>2.2.0</version> <!-- or whatever the latest version is -->
         </dependency>
+
+        <!-- utils dependency for project -->
         <dependency>
             <groupId>com.orenn.kafka.twitter</groupId>
             <artifactId>utils</artifactId>

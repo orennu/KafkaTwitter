@@ -33,6 +33,8 @@
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
             <version>7.11.0</version>
         </dependency>
+
+        <!-- utils dependency for project -->
         <dependency>
             <groupId>com.orenn.kafka.twitter</groupId>
             <artifactId>utils</artifactId>
