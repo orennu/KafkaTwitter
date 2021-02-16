@@ -9,12 +9,12 @@ public class JSONFileReader {
 
     private JSONObject jsonObject;
 
-    public JSONFileReader() {
+    public JSONFileReader(String filePath) {
 
         JSONParser parser = new JSONParser();
 
         try {
-            Object fileObject = parser.parse(new FileReader("/home/oren/projects/KafkaTwitter/.twitter_secrets.json"));
+            Object fileObject = parser.parse(new FileReader(filePath));
             this.jsonObject = (JSONObject) fileObject;
         } catch (Exception err) {
             err.printStackTrace();

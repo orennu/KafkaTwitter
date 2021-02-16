@@ -1,7 +1,6 @@
 package com.orenn.kafka.twitter;
 
 import com.google.common.collect.Lists;
-import com.orenn.kafka.utils.JSONFileReader;
 import com.twitter.hbc.ClientBuilder;
 import com.twitter.hbc.core.Client;
 import com.twitter.hbc.core.Constants;
@@ -11,6 +10,7 @@ import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
 import com.twitter.hbc.core.processor.StringDelimitedProcessor;
 import com.twitter.hbc.httpclient.auth.Authentication;
 import com.twitter.hbc.httpclient.auth.OAuth1;
+import com.orenn.kafka.utils.JSONFileReader;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.json.simple.JSONObject;
@@ -27,7 +27,7 @@ public class TwitterProducer {
 
     private final Logger logger = LoggerFactory.getLogger(TwitterProducer.class.getName());
 
-    private final JSONObject secretsMap = new JSONFileReader().getJsonObject();
+    private final JSONObject secretsMap = new JSONFileReader("/home/oren/projects/KafkaTwitter/.twitter_secrets.json").getJsonObject();
 
     private final String consumerKey = (String) secretsMap.get("consumerKey");
     private final String consumerSecret = (String) secretsMap.get("consumerSecret");

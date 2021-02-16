@@ -2,17 +2,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>KafkaTwitter</artifactId>
+        <groupId>com.orenn.kafka.twitter</groupId>
+        <version>1.0</version>
+    </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.orenn.kafka.twitter</groupId>
-    <artifactId>KafkaTwitter</artifactId>
-    <packaging>pom</packaging>
-    <version>1.0</version>
-    <modules>
-        <module>kafka-twitter-producer</module>
-        <module>utils</module>
-        <module>kafka-elasticsearch-consumer</module>
-    </modules>
+    <artifactId>utils</artifactId>
+
+    <dependencies>
+
+        <!-- simple json dependency-->
+        <dependency>
+            <groupId>com.googlecode.json-simple</groupId>
+            <artifactId>json-simple</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+
+    </dependencies>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

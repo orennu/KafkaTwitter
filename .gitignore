@@ -1,4 +1,5 @@
 .idea/
 target/
-KafkaTwitter.iml
+*.iml
 .twitter_secrets.json
+.elasticsearch_secrets.json
