@@ -1,5 +1,6 @@
 package com.orenn.kafka.elasticsearch;
 
+import com.google.gson.JsonParser;
 import com.orenn.kafka.utils.JSONFileReader;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -18,6 +19,8 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
@@ -69,7 +72,7 @@ public class ElasticSearchConsumer {
         properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         List<String> topicList = new ArrayList<>();
         topicList.add(topic);
@@ -95,10 +98,19 @@ public class ElasticSearchConsumer {
 
             for (ConsumerRecord<String, String> record : records) {
                 // insert data into elasticsearch
-                IndexRequest indexRequest = new IndexRequest("twitter", "tweets").source(record.value(), XContentType.JSON);
+                // strategies for creating unique ID
+                // 1. Kafka generic ID
+                // String id = String.format("%s_%s_%s", record.topic(), record.partition(), record.offset());
+                // 2. Twitter specific ID --> going with this approach for this project
+                String id = extractIdFromTweet(record.value());
+
+                IndexRequest indexRequest = new IndexRequest("twitter");
+                indexRequest.id(id);
+                indexRequest.source(record.value(), XContentType.JSON);
                 IndexResponse indexResponse = elasticSearchClient.index(indexRequest, RequestOptions.DEFAULT);
-                String id = indexResponse.getId();
-                logger.info(id);
+
+                logger.info(indexResponse.getId());
+
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
@@ -110,5 +122,10 @@ public class ElasticSearchConsumer {
         // close client gracefully
         //elasticSearchClient.close();
 
+    }
+
+    private static String extractIdFromTweet(String tweetJson) {
+
+        return JsonParser.parseString(tweetJson).getAsJsonObject().get("id_str").getAsString();
     }
 }
