@@ -13,6 +13,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -73,6 +75,8 @@ public class ElasticSearchConsumer {
         properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false"); // disable auto commit of offsets
+        properties.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "100");
 
         List<String> topicList = new ArrayList<>();
         topicList.add(topic);
@@ -96,21 +100,36 @@ public class ElasticSearchConsumer {
         while (true) {
             ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(100));
 
+            Integer recordCount = records.count();
+            logger.info(String.format("Received %s records", recordCount));
+
+            BulkRequest bulkRequest = new BulkRequest(); // create BulkRequest for batching messages
+
             for (ConsumerRecord<String, String> record : records) {
-                // insert data into elasticsearch
-                // strategies for creating unique ID
-                // 1. Kafka generic ID
-                // String id = String.format("%s_%s_%s", record.topic(), record.partition(), record.offset());
-                // 2. Twitter specific ID --> going with this approach for this project
-                String id = extractIdFromTweet(record.value());
+                try {
+                    // insert data into elasticsearch
+                    // strategies for creating unique ID
+                    // 1. Kafka generic ID
+                    // String id = String.format("%s_%s_%s", record.topic(), record.partition(), record.offset());
+                    // 2. Twitter specific ID --> going with this approach for this project
+                    String id = extractIdFromTweet(record.value());
 
-                IndexRequest indexRequest = new IndexRequest("twitter");
-                indexRequest.id(id);
-                indexRequest.source(record.value(), XContentType.JSON);
-                IndexResponse indexResponse = elasticSearchClient.index(indexRequest, RequestOptions.DEFAULT);
+                    IndexRequest indexRequest = new IndexRequest("twitter");
+                    indexRequest.id(id);
+                    indexRequest.source(record.value(), XContentType.JSON);
 
-                logger.info(indexResponse.getId());
+                    bulkRequest.add(indexRequest); // add record to bulk request
+                } catch (NullPointerException err) {
+                    logger.warn(String.format("skipping bad data: %s", record.value()));
+                }
+            }
 
+            if (recordCount > 0) {
+                BulkResponse bulkResponse = elasticSearchClient.bulk(bulkRequest, RequestOptions.DEFAULT); // sending batch of messages in bulk
+
+                logger.info("Committing offsets...");
+                kafkaConsumer.commitAsync();
+                logger.info("Offsets have been committed");
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
